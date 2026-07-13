@@ -117,13 +117,18 @@ if "--worker" not in sys.argv:
             CRASH TRACEBACK:\n{stderr}\n\nSYSTEM CODEBASE CONTEXT:\n{content}\n
             Output ONLY raw JSON format: [ {{"file_path": "nemesis_live_tracer.py", "new_content": "<FULL_REWRITTEN_FILE>"}} ]"""
             
-            try:
-                response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
-                json_text = response.text.strip().replace("```json", "").replace("```", "").strip()
-                return json.loads(json_text)
-            except Exception as e:
-                print(f"[!] AI Patch Generation Failed: {e}")
-                return None
+            last_error = None
+            for model_name in ['gemini-3.0-flash', 'gemini-3.1-flash', 'gemini-1.5-pro', 'gemini-2.5-flash']:
+                try:
+                    response = client.models.generate_content(model=model_name, contents=prompt)
+                    json_text = response.text.strip().replace("```json", "").replace("```", "").strip()
+                    return json.loads(json_text)
+                except Exception as e:
+                    last_error = e
+                    continue
+            
+            print(f"[!] AI Patch Generation Failed on all models: {last_error}")
+            return None
 
         @staticmethod
         def apply_patch(patches: list) -> bool:
@@ -315,11 +320,14 @@ class NemesisKernel:
             Machine State: {self.machine_state}
             Evaluate mission priority. Return JSON: {{"layer": "...", "module": "...", "event": "..."}}
             """
-            try:
-                response = self.model.models.generate_content(model='gemini-2.5-flash', contents=prompt)
-                decision = json.loads(response.text.replace('```json', '').replace('```', ''))
-                logger.info(f"[GODMODE DISPATCH] {decision}")
-            except Exception: pass
+            for model_name in ['gemini-3.0-flash', 'gemini-3.1-flash', 'gemini-1.5-pro']:
+                try:
+                    response = self.model.models.generate_content(model=model_name, contents=prompt)
+                    decision = json.loads(response.text.replace('```json', '').replace('```', ''))
+                    logger.info(f"[GODMODE DISPATCH] {decision}")
+                    break
+                except Exception: 
+                    continue
             await asyncio.sleep(60)
 
 os_state = NemesisKernel()
@@ -648,23 +656,38 @@ class AIAgent:
         try:
             gemini_keys = os.getenv("GEMINI_API_KEYS", os.getenv("GEMINI_API_KEY", ""))
             client_ai = genai.Client(api_key=gemini_keys.split(",")[0].strip())
-            response = client_ai.models.generate_content(model='gemini-2.5-flash', contents=prompt, config=types.GenerateContentConfig(temperature=0.2))
+            
+            response = None
+            for model_name in ['gemini-3.0-flash', 'gemini-3.1-flash', 'gemini-1.5-pro', 'gemini-2.5-flash']:
+                try:
+                    response = client_ai.models.generate_content(model=model_name, contents=prompt, config=types.GenerateContentConfig(temperature=0.2))
+                    break
+                except Exception:
+                    continue
+            
+            if not response:
+                raise Exception("All configured AI models failed to generate content.")
+                
             html_content = response.text.replace("```html", "").replace("```", "")
             return html_content
         except Exception as e: return f"<h2>AI Generation Failed</h2><p>{str(e)}</p>"
 
 # ==============================================================================
-# 🌐 8. FASTAPI ROUTING & SOCKET.IO APP
+# 🌐 9. FASTAPI ROUTING & SOCKET.IO APP
 # ==============================================================================
-app = FastAPI(title="Lionsgate Nemesis - Apex Auto-Tracer")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+from contextlib import asynccontextmanager
 
-@app.on_event("startup")
-async def startup_pipeline():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await init_db()
     asyncio.create_task(AutoAuditManager.audit_loop())
     asyncio.create_task(mempool_listener())
     asyncio.create_task(os_state.cognitive_cycle())
+    yield
+    logger.info("🛑 Shutting down Nemesis OS...")
+
+app = FastAPI(title="Lionsgate Nemesis - Apex Auto-Tracer", lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 @sio.on('join_trace')
 async def join_trace(sid, data):
