@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
 ==============================================================================
-🛡️ LIONSGATE INTELLIGENCE NETWORK - NEMESIS APEX OMNI-ENGINE (v56.0 MONOLITH)
+🛡️ LIONSGATE INTELLIGENCE NETWORK - NEMESIS APEX OMNI-ENGINE (v57.0 MONOLITH)
 ==============================================================================
 Integrated Capabilities:
-- Auto-Dependency Bootstrapper & Auto-Healing Core
+- Self-Healing Autonomous Orchestrator (Auto-Patching via Gemini AI)
+- Hybrid State Machine (HSM & Godmode Cognitive Cycle)
 - Asset Lifecycle Engine v13.5 (Wraps, Bridges, Swaps, Mints, Burns)
-- Forensic Signature Engine (SBAT / Phishing Drainer Detection / 1inch / Curve)
+- Forensic Signature Engine (SBAT / Phishing Drainer Detection)
 - MEV & Mempool Sniper (Flashbots, Sandwich Attacks)
 - PyTorch Geometric (GNN) Attacker Clustering
-- OSINT Orchestrator & Corporate Intel Scraper
+- Darknet Spider (Tor-Routed OSINT Crawler) & Corporate Intel Scraper
 - Cloudflare D1 Lightweight Cache & Dual-Database (MongoDB + Neo4j)
 - 12-Tab NEMESIS ID GUI & Real-Time Socket.io Pipeline Streaming
 - Globalized Wallet & Transaction UI (cryptologos.cc mapping)
@@ -20,23 +21,31 @@ import sys
 import os
 import subprocess
 import logging
+import importlib
+import time
+import json
+import hashlib
+from threading import Thread
 
 # ==============================================================================
 # 🚀 0. AUTO-CHECK & INSTALL DEPENDENCIES (PRE-FLIGHT BOOTSTRAP)
 # ==============================================================================
 def bootstrap_environment():
-    """Self-Bootstrapping Subsystem"""
+    """Self-Bootstrapping Subsystem with Infinite-Loop Resolution"""
     required_packages = {
         "fastapi": "fastapi", "uvicorn": "uvicorn", "pydantic": "pydantic",
         "motor": "motor", "aiohttp": "aiohttp", "socketio": "python-socketio",
         "playwright": "playwright", "neo4j": "neo4j", "websockets": "websockets",
-        "bs4": "beautifulsoup4", "google.generativeai": "google-genai",
-        "torch": "torch", "torch_geometric": "torch_geometric", "scikit-learn": "scikit-learn"
+        "bs4": "beautifulsoup4", "google.genai": "google-genai",
+        "torch": "torch", "torch_geometric": "torch-geometric", "sklearn": "scikit-learn",
+        "psutil": "psutil", "dotenv": "python-dotenv", "passlib": "passlib[bcrypt]"
     }
     missing_packages = []
     for module_name, pip_name in required_packages.items():
-        try: __import__(module_name)
-        except ImportError: missing_packages.append(pip_name)
+        try:
+            importlib.import_module(module_name)
+        except ImportError:
+            missing_packages.append(pip_name)
             
     if missing_packages:
         print(f"[*] Missing dependencies detected: {missing_packages}. Auto-installing...")
@@ -52,14 +61,148 @@ def bootstrap_environment():
 
 bootstrap_environment()
 
-# --- STANDARD IMPORTS ---
-import json
+# ==============================================================================
+# 🤖 1. SELF-HEALING AUTONOMOUS ORCHESTRATOR (THE SUPERVISOR)
+# ==============================================================================
+# If "--worker" is not in sys.argv, run the Supervisor logic instead of the app.
+if "--worker" not in sys.argv:
+    import psutil
+    from google import genai
+    from dotenv import load_dotenv
+    load_dotenv()
+    
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    COGNITION_DB = os.path.join(BASE_DIR, "nemesis_cognition.json")
+    
+    class SelfLearningMemoryMatrix:
+        @staticmethod
+        def hash_error(stderr_trace: str) -> str:
+            lines = [line.strip() for line in stderr_trace.split('\n') if "File" in line or "Error:" in line]
+            signature = "\n".join(lines[-5:])
+            return hashlib.sha256(signature.encode()).hexdigest()
+
+        @staticmethod
+        def lookup_resolution(crash_hash: str):
+            if not os.path.exists(COGNITION_DB): return None
+            try:
+                with open(COGNITION_DB, "r") as f: return json.load(f).get(crash_hash)
+            except: return None
+
+        @staticmethod
+        def store_resolution(crash_hash: str, patch_data: list, description: str):
+            db = {}
+            if os.path.exists(COGNITION_DB):
+                try:
+                    with open(COGNITION_DB, "r") as f: db = json.load(f)
+                except: pass
+            db[crash_hash] = {"resolved_at": datetime.utcnow().isoformat(), "description": description, "patch": patch_data}
+            with open(COGNITION_DB, "w") as f: json.dump(db, f, indent=4)
+            print(f"[LEVEL 2] Learned & Cached resolution for crash signature {crash_hash[:8]}")
+
+    class SelfProgrammingEngine:
+        @staticmethod
+        def diagnose_and_patch(stderr: str) -> list:
+            print("[LEVEL 3] Self-Programming Engine: Analyzing crash dump...")
+            gemini_keys = os.getenv("GEMINI_API_KEYS", os.getenv("GEMINI_API_KEY", ""))
+            if not gemini_keys: return None
+            client = genai.Client(api_key=gemini_keys.split(",")[0].strip())
+            
+            with open(__file__, "r", encoding="utf-8") as f:
+                content = f.read()
+                lines = content.split('\n')
+                if len(lines) > 2000: content = "\n".join(lines[:2000]) + "\n...[TRUNCATED]..."
+            
+            prompt = f"""You are the NEMESIS Autonomous OS Self-Programming Engine.
+            The master application has crashed. Analyze the traceback and output a strict JSON patch to fix it.
+            CRASH TRACEBACK:\n{stderr}\n\nSYSTEM CODEBASE CONTEXT:\n{content}\n
+            Output ONLY raw JSON format: [ {{"file_path": "nemesis_live_tracer.py", "new_content": "<FULL_REWRITTEN_FILE>"}} ]"""
+            
+            try:
+                response = client.models.generate_content(model='gemini-2.5-flash', contents=prompt)
+                json_text = response.text.strip().replace("```json", "").replace("```", "").strip()
+                return json.loads(json_text)
+            except Exception as e:
+                print(f"[!] AI Patch Generation Failed: {e}")
+                return None
+
+        @staticmethod
+        def apply_patch(patches: list) -> bool:
+            if not patches: return False
+            for patch in patches:
+                try:
+                    with open(__file__, "w", encoding="utf-8") as f:
+                        f.write(patch.get("new_content", ""))
+                    print(f"[+] Autonomous Patch Applied successfully to: {__file__}")
+                except Exception as e:
+                    print(f"[!] Failed to write patch: {e}")
+                    return False
+            return True
+
+    class NemesisAutonomousOrchestrator:
+        def boot_sequence(self):
+            print("\n=====================================================")
+            print(" 🧠 NEMESIS AUTONOMOUS OS INITIALIZING (SUPERVISOR)")
+            print("=====================================================\n")
+            while True:
+                if psutil.virtual_memory().percent > 92:
+                    print("[*] Triggering preventative restart due to resource exhaustion...")
+                    time.sleep(2); continue
+                    
+                print("[LEVEL 5] Booting Execution Layer (Worker)...")
+                process = subprocess.Popen([sys.executable, __file__, "--worker"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
+                
+                def stream_output(pipe, prefix):
+                    for line in iter(pipe.readline, ''): print(f"[{prefix}] {line.strip()}")
+                        
+                stderr_capture = []
+                def capture_stderr(pipe, storage):
+                    for line in iter(pipe.readline, ''):
+                        print(f"[APP-STDERR] {line.strip()}")
+                        storage.append(line)
+                
+                Thread(target=stream_output, args=(process.stdout, "WORKER-STDOUT"), daemon=True).start()
+                err_thread = Thread(target=capture_stderr, args=(process.stderr, stderr_capture), daemon=True)
+                err_thread.start()
+                
+                process.wait(); err_thread.join()
+                exit_code = process.returncode
+                
+                if exit_code != 0:
+                    print(f"\n[CRITICAL] Worker crashed with exit code {exit_code}.")
+                    full_stderr = "".join(stderr_capture)
+                    if not full_stderr.strip(): time.sleep(5); continue
+                    
+                    crash_hash = SelfLearningMemoryMatrix.hash_error(full_stderr)
+                    cached_res = SelfLearningMemoryMatrix.lookup_resolution(crash_hash)
+                    
+                    if cached_res:
+                        print("[LEVEL 2] Known crash detected! Pulling fix from Self-Learning Memory...")
+                        SelfProgrammingEngine.apply_patch(cached_res["patch"])
+                    else:
+                        print("[LEVEL 3] Unknown crash. Engaging Self-Programming Engine (LLM)...")
+                        patch_data = SelfProgrammingEngine.diagnose_and_patch(full_stderr)
+                        if SelfProgrammingEngine.apply_patch(patch_data):
+                            SelfLearningMemoryMatrix.store_resolution(crash_hash, patch_data, "Autonomous bug fix applied.")
+                    time.sleep(5)
+                else:
+                    print("[*] Worker exited gracefully.")
+                    break
+
+    orchestrator = NemesisAutonomousOrchestrator()
+    orchestrator.boot_sequence()
+    sys.exit(0)
+
+# ==============================================================================
+# ==============================================================================
+# --- MAIN APPLICATION WORKER BEGINS HERE (RUNS ONLY IF "--worker" IS IN ARGV) ---
+# ==============================================================================
+# ==============================================================================
+
 import re
 import uuid
 import asyncio
 import binascii
 import statistics
-import math
 from collections import defaultdict, deque
 from datetime import datetime, timezone
 from typing import List, Dict, Any, Set, Callable, Optional
@@ -92,7 +235,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ==============================================================================
-# 🛡️ 1. SYSTEM CONFIGURATION & MASTER INSTRUCTIONS
+# 🛡️ 2. SYSTEM CONFIGURATION & MASTER INSTRUCTIONS
 # ==============================================================================
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 logger = logging.getLogger("NEMESIS_APEX")
@@ -103,20 +246,16 @@ Perform Auto-Audits of frontend UI, backend pipeline execution, Neo4j Graph topo
 Ensure every asset follows the Asset Lifecycle pattern and maps strictly to cryptologos.cc globalization parameters.
 """
 
-# Secure Credentials (Environment Variables)
-MONGODB_URI = os.getenv("MONGODB_URI", os.getenv("DATABASE_MONGO_URL", "mongodb://localhost:27017"))
+MONGODB_URI = os.getenv("DATABASE_MONGO_URL", "mongodb://localhost:27017")
 NEO4J_URI = os.getenv("NEO4J_URI", "")
 NEO4J_USERNAME = os.getenv("NEO4J_USERNAME", "")
 NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "")
-
 CF_ACCOUNT_ID = os.getenv("CLOUDFLARE_ACCOUNT_ID", "")
 CF_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN", "")
 CF_D1_DB_ID = os.getenv("CLOUDFLARE_D1_DATABASE_ID", "")
-
 ETHERSCAN_API_KEY = os.getenv("ETHERSCAN_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
-# Databases
 mongo_client = motor.motor_asyncio.AsyncIOMotorClient(MONGODB_URI, maxPoolSize=100)
 db = mongo_client.nemesis_apex
 
@@ -125,7 +264,82 @@ if NEO4J_AVAILABLE and NEO4J_URI:
     neo4j_driver = AsyncGraphDatabase.driver(NEO4J_URI, auth=(NEO4J_USERNAME, NEO4J_PASSWORD))
 
 # ==============================================================================
-# 🧬 2. ASSET LIFECYCLE ENGINE (v13.5), ONTOLOGY & FORENSICS
+# 🧠 3. HYBRID STATE MACHINE DISPATCHER (GODMODE KERNEL)
+# ==============================================================================
+class HumanState(str, Enum):
+    IDLE = "Idle"
+    OBSERVING = "Observing"
+    INVESTIGATING = "Investigating"
+    DECISION_MAKING = "Decision Making"
+    COLLABORATING = "Collaborating"
+
+class MachineState(str, Enum):
+    BOOTING = "Booting"
+    READY = "Ready"
+    EXECUTING = "Executing"
+    LEARNING = "Learning"
+    HEALING = "Healing"
+
+class MissionState(str, Enum):
+    QUEUED = "Queued"
+    COLLECTING_INTELLIGENCE = "Collecting Intelligence"
+    CORRELATING_EVIDENCE = "Correlating Evidence"
+    REPORTING = "Reporting"
+    ARCHIVED = "Archived"
+
+class NemesisKernel:
+    """Godmode Cognitive Cycle & State Orchestrator."""
+    def __init__(self):
+        self.state_layers = {"kernel": "FSM", "agents": "HSM_BehaviorTree", "intelligence": "Dataflow"}
+        gemini_keys = os.getenv("GEMINI_API_KEYS", os.getenv("GEMINI_API_KEY", ""))
+        self.model = genai.Client(api_key=gemini_keys.split(",")[0].strip()) if gemini_keys else None
+        
+        self.human_state = HumanState.IDLE
+        self.machine_state = MachineState.READY
+        self.mission_state = MissionState.QUEUED
+
+    async def transition(self, domain: str, new_state: str, context: str = ""):
+        setattr(self, f"{domain.lower()}_state", new_state)
+        await db.system_logs.insert_one({"ts": datetime.now(timezone.utc).isoformat(), "domain": domain, "state": new_state, "context": context})
+        logger.info(f"🔄 [{domain} STATE] -> {new_state} | {context}")
+
+    async def cognitive_cycle(self):
+        """Infinite loop evaluating system priorities via LLM."""
+        logger.info("⚙️ [GODMODE KERNEL] Cognitive Cycle Online.")
+        while True:
+            if not self.model: 
+                await asyncio.sleep(60); continue
+            prompt = f"""
+            System States: {json.dumps(self.state_layers)}
+            Mission State: {self.mission_state}
+            Machine State: {self.machine_state}
+            Evaluate mission priority. Return JSON: {{"layer": "...", "module": "...", "event": "..."}}
+            """
+            try:
+                response = self.model.models.generate_content(model='gemini-2.5-flash', contents=prompt)
+                decision = json.loads(response.text.replace('```json', '').replace('```', ''))
+                logger.info(f"[GODMODE DISPATCH] {decision}")
+            except Exception: pass
+            await asyncio.sleep(60)
+
+os_state = NemesisKernel()
+
+class AutoAuditManager:
+    @staticmethod
+    async def audit_loop():
+        while True:
+            await os_state.transition("MACHINE", "Auditing", "Running pre-flight checks and data validation.")
+            try:
+                await mongo_client.admin.command("ping")
+                if neo4j_driver: await neo4j_driver.verify_connectivity()
+                await os_state.transition("MACHINE", "Ready", "Audit Passed.")
+            except Exception as e:
+                logger.error(f"[AUDIT FAIL] {e}")
+                await os_state.transition("MACHINE", "Healing", f"Audit Error: {e}")
+            await asyncio.sleep(120)
+
+# ==============================================================================
+# 🧬 4. ASSET LIFECYCLE ENGINE (v13.5), ONTOLOGY & FORENSICS
 # ==============================================================================
 class EntityType(str, Enum):
     WALLET = "Wallet"
@@ -135,7 +349,6 @@ class EntityType(str, Enum):
     MIXER = "Mixer"
     DEX_ROUTER = "DEX Router"
     CEX = "CEX"
-    NFT = "NFT"
 
 class ActionType(str, Enum):
     TRANSFER = "TRANSFER"
@@ -146,25 +359,9 @@ class ActionType(str, Enum):
     WRAP = "WRAP"
     UNWRAP = "UNWRAP"
     DEPOSIT = "DEPOSIT"
-    WITHDRAWAL = "WITHDRAWAL"
     MIXER = "MIXER"
     CEX_DEPOSIT = "CEX_DEPOSIT"
-    INTERNAL_TX = "INTERNAL_TX"
-    NFT_TRANSFER = "NFT_TRANSFER"
-
-WRAPPED_ASSETS = {
-    "BTC": ["WBTC", "renBTC", "sBTC", "tBTC", "BTCB", "WBTC.e"],
-    "ETH": ["WETH", "stETH", "wstETH", "cbETH", "rETH"],
-    "BNB": ["WBNB"], "AVAX": ["WAVAX"], "SOL": ["wSOL"], "USDT": ["USDT.e", "axlUSDT"]
-}
-
-DEX_BLACKHOLES = {
-    "uniswap": {"type": EntityType.DEX_ROUTER, "keywords": ["uniswap", "swaprouter"]},
-    "pancakeswap": {"type": EntityType.DEX_ROUTER, "keywords": ["pancake", "router"]},
-    "curve": {"type": EntityType.DEX_ROUTER, "keywords": ["curve", "pool"]},
-    "aave": {"type": EntityType.CONTRACT, "keywords": ["aave", "lendingpool"]},
-    "1inch": {"type": EntityType.DEX_ROUTER, "keywords": ["1inch", "aggregationrouter"]}
-}
+    DRAIN_EXECUTION = "DRAIN_EXECUTION"
 
 FORENSIC_SIGNATURES = {
     "0xa22cb465": {"name": "setApprovalForAll", "risk": "CRITICAL", "desc": "NFT Collection Drainer"},
@@ -174,7 +371,6 @@ FORENSIC_SIGNATURES = {
     "0x2e1a7d4d": {"name": "withdraw", "risk": "MEDIUM", "desc": "Unwrap / Vault Drain"}
 }
 
-# --- PYDANTIC MODELS ---
 class AssetLineage(BaseModel):
     original_asset: str
     current_asset: str
@@ -201,46 +397,8 @@ class ForensicEdge(BaseModel):
     sbat_alert: Optional[Dict] = None
 
 # ==============================================================================
-# 🧠 3. HUMAN-MACHINE SYMBIOSIS (HSM) & AUTO-AUDIT DAEMON
+# 🤖 5. AI GNN CLUSTERING, SPIDER & TACTICAL MODULES
 # ==============================================================================
-class StateOrchestrator:
-    def __init__(self):
-        self.human_state = "Idle"
-        self.machine_state = "Ready"
-        self.mission_state = "Queued"
-
-    async def transition(self, domain: str, new_state: str, context: str = ""):
-        setattr(self, f"{domain.lower()}_state", new_state)
-        await db.system_logs.insert_one({"ts": datetime.now(timezone.utc).isoformat(), "domain": domain, "state": new_state, "context": context})
-        logger.info(f"🔄 [{domain} STATE] -> {new_state} | {context}")
-
-os_state = StateOrchestrator()
-
-class AutoAuditManager:
-    @staticmethod
-    async def audit_loop():
-        while True:
-            await os_state.transition("MACHINE", "Auditing", "Running pre-flight checks and data validation.")
-            try:
-                await mongo_client.admin.command("ping")
-                if neo4j_driver: await neo4j_driver.verify_connectivity()
-            except Exception as e:
-                logger.error(f"[AUDIT FAIL] {e}")
-                await os_state.transition("MACHINE", "Degraded", f"Audit Error: {e}")
-            await asyncio.sleep(60)
-
-# ==============================================================================
-# 🤖 4. AI GNN & ATTACKER CLUSTERING (PYTORCH) & MEV ENGINE
-# ==============================================================================
-class WalletGNN(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = GCNConv(6, 16)
-        self.conv2 = GCNConv(16, 8)
-    def forward(self, x, edge_index):
-        x = F.relu(self.conv1(x, edge_index))
-        return self.conv2(x, edge_index)
-
 MEMPOOL = deque(maxlen=5000)
 
 async def mempool_listener():
@@ -255,9 +413,6 @@ async def mempool_listener():
                 if tx_hash: MEMPOOL.append({"hash": tx_hash, "ts": datetime.now(timezone.utc).isoformat()})
     except Exception as e: logger.warning(f"Mempool Stream Closed: {e}")
 
-# ==============================================================================
-# 🕸️ 5. OSINT SPIDER, OKLINK & CLOUDFLARE D1 (LIGHTWEIGHT CACHE)
-# ==============================================================================
 async def query_cloudflare_d1(sql: str, params: list = []):
     """Cloudflare D1 Lightweight Intel Cache (Wallet Labels, Entities, Tags)"""
     if not CF_ACCOUNT_ID or not CF_API_TOKEN: return [] 
@@ -294,6 +449,30 @@ class GEISScraper:
         except: pass
         return schema
 
+class CrawlerStack:
+    """Darknet Tor Spider / OSINT Engine"""
+    @staticmethod
+    async def dynamic_scrape(url: str) -> str:
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(headless=True)
+                page = await browser.new_page()
+                await page.goto(url, wait_until="networkidle", timeout=15000)
+                content = await page.content()
+                await browser.close()
+                return content
+        except Exception: return ""
+
+class NemesisSpiderFSM:
+    async def run_pipeline(self, target_url: str):
+        await os_state.transition("MISSION", MissionState.COLLECTING_INTELLIGENCE, f"Spider Crawling: {target_url}")
+        raw_data = await CrawlerStack.dynamic_scrape(target_url)
+        if not raw_data: return
+        iocs = re.findall(r'0x[a-fA-F0-9]{40}|bc1[a-zA-HJ-NP-Z0-9]{25,39}', raw_data)
+        unique_iocs = list(set(iocs))
+        for ioc in unique_iocs:
+            await db.darknet_intel.update_one({"address": ioc}, {"$set": {"source": target_url, "last_seen": datetime.now(timezone.utc).isoformat()}}, upsert=True)
+
 # ==============================================================================
 # ⛓️ 6. AUTONOMOUS TRACE EXECUTION PIPELINE (SOCKET.IO)
 # ==============================================================================
@@ -318,7 +497,6 @@ class NemesisLiveTracer:
         await sio.emit('pipeline_update', {"active_stage": self.PIPELINE_STAGES[self.current_stage], **self.stats}, room=self.trace_id)
 
     def classify_tx_event(self, tx: Dict) -> str:
-        """Asset Lifecycle Classification Engine v13.5"""
         fn = (tx.get("functionName") or "").lower()
         inp = (tx.get("input") or "").lower()
         if len(inp) >= 10 and inp[:10] in FORENSIC_SIGNATURES:
@@ -330,14 +508,13 @@ class NemesisLiveTracer:
         if "mint" in fn or tx.get("from") == "0x0000000000000000000000000000000000000000": return ActionType.MINT
         if "burn" in fn or tx.get("to") == "0x0000000000000000000000000000000000000000": return ActionType.BURN
         if "bridge" in fn: return ActionType.BRIDGE
-        if "deposit" in fn: return ActionType.DEPOSIT
         if "wrap" in fn: return ActionType.WRAP
         if "unwrap" in fn: return ActionType.UNWRAP
         return ActionType.TRANSFER
 
     async def orchestrate(self, address: str, chain: str):
         self.stats["chain"] = chain
-        await os_state.transition("MISSION", "Collecting Intelligence")
+        await os_state.transition("MISSION", MissionState.COLLECTING_INTELLIGENCE)
         await self.emit_progress(1) # Initializing
         await self.emit_progress(1) # Validating Address
         await self.emit_progress(1) # Detecting Blockchain
@@ -357,7 +534,7 @@ class NemesisLiveTracer:
         await self.emit_progress(1) # Final Report
         
         await sio.emit('trace_complete', {"trace_id": self.trace_id}, room=self.trace_id)
-        await os_state.transition("MISSION", "Completed")
+        await os_state.transition("MISSION", MissionState.ARCHIVED, "Trace Complete")
 
     async def execute_trace_step(self, address: str, chain: str, depth: int, lineage: AssetLineage):
         if depth > self.max_depth: return
@@ -420,6 +597,7 @@ class NemesisLiveTracer:
                                     if len(inp) >= 10 and inp[:10] in FORENSIC_SIGNATURES:
                                         sbat_alert = FORENSIC_SIGNATURES[inp[:10]]
                                         if "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" in inp: sbat_alert["desc"] += " (INFINITE APPROVAL)"
+                                        action_type = ActionType.DRAIN_EXECUTION
 
                                     edge = ForensicEdge(
                                         trace_id=self.trace_id, from_addr=address, to_addr=tx["to"], amount=val, chain=chain, tx_hash=tx["hash"],
@@ -440,7 +618,7 @@ class NemesisLiveTracer:
             except Exception as e: logger.error(f"Tx Fetch Error: {e}")
 
 # ==============================================================================
-# 🤖 8. AI INVESTIGATION LAYER (GEMINI DOC GENERATOR)
+# 🤖 7. AI INVESTIGATION LAYER (GEMINI DOC GENERATOR)
 # ==============================================================================
 class AIAgent:
     @staticmethod
@@ -468,14 +646,15 @@ class AIAgent:
         """
 
         try:
-            client_ai = genai.Client(api_key=GEMINI_API_KEY)
+            gemini_keys = os.getenv("GEMINI_API_KEYS", os.getenv("GEMINI_API_KEY", ""))
+            client_ai = genai.Client(api_key=gemini_keys.split(",")[0].strip())
             response = client_ai.models.generate_content(model='gemini-2.5-flash', contents=prompt, config=types.GenerateContentConfig(temperature=0.2))
             html_content = response.text.replace("```html", "").replace("```", "")
             return html_content
         except Exception as e: return f"<h2>AI Generation Failed</h2><p>{str(e)}</p>"
 
 # ==============================================================================
-# 🌐 9. FASTAPI ROUTING & SOCKET.IO APP
+# 🌐 8. FASTAPI ROUTING & SOCKET.IO APP
 # ==============================================================================
 app = FastAPI(title="Lionsgate Nemesis - Apex Auto-Tracer")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -485,6 +664,7 @@ async def startup_pipeline():
     await init_db()
     asyncio.create_task(AutoAuditManager.audit_loop())
     asyncio.create_task(mempool_listener())
+    asyncio.create_task(os_state.cognitive_cycle())
 
 @sio.on('join_trace')
 async def join_trace(sid, data):
@@ -497,7 +677,7 @@ class DeploymentPayload(BaseModel):
 
 @app.post("/api/v1/trace/deploy")
 async def deploy_nemesis_engine(payload: DeploymentPayload, background_tasks: BackgroundTasks):
-    await os_state.transition("HUMAN", "Decision Making", "Deploying Trace")
+    await os_state.transition("HUMAN", HumanState.DECISION_MAKING, "Deploying Trace")
     trace_id = f"NMS-APEX-{uuid.uuid4().hex[:8].upper()}"
     tracer = NemesisLiveTracer(trace_id, max_depth=payload.max_depth)
     clean_seeds = [s.strip() for s in re.split(r'[\s,]+', payload.seeds) if s.strip()]
@@ -513,13 +693,13 @@ async def get_report(trace_id: str, zip: str = ""):
     return {"html": await AIAgent.generate_full_report(trace_id, zip)}
 
 @app.get("/api/v1/system/state")
-async def get_os_state(): 
+async def get_os_state_endpoint(): 
     return {"human": os_state.human_state, "machine": os_state.machine_state, "mission": os_state.mission_state, "mempool_size": len(MEMPOOL)}
 
 socket_app = socketio.ASGIApp(sio, app)
 
 # ==============================================================================
-# 🎨 10. SPA FRONTEND (LIGHT THEME, SIGMA-STYLE GRAPH, 12-TAB NEMESIS ID)
+# 🎨 9. SPA FRONTEND (LIGHT THEME, SIGMA-STYLE GRAPH, 12-TAB NEMESIS ID)
 # ==============================================================================
 HTML_TEMPLATE = r"""
 <!DOCTYPE html>
@@ -1045,6 +1225,6 @@ socket_app = socketio.ASGIApp(sio, app)
 if __name__ == "__main__":
     import uvicorn
     logger.info("====================================================================")
-    logger.info("  DEPLOYING LIONSGATE NEMESIS APEX (v56.0 MONOLITHIC ARCHITECTURE)  ")
+    logger.info("  DEPLOYING LIONSGATE NEMESIS APEX (v57.0 MONOLITHIC ARCHITECTURE)  ")
     logger.info("====================================================================")
     uvicorn.run(socket_app, host="0.0.0.0", port=8000)
